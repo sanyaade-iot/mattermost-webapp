@@ -101,8 +101,14 @@ export default class Post extends React.PureComponent {
         super(props);
 
         this.state = {
-            dropdownOpened: false
+            dropdownOpened: false,
+            hover: false,
+            sameRoot: this.hasSameRoot(props)
         };
+    }
+
+    componentWillReceiveProps(nextProps) {
+        this.setState({sameRoot: this.hasSameRoot(nextProps)});
     }
 
     handleCommentClick = (e) => {
@@ -126,6 +132,20 @@ export default class Post extends React.PureComponent {
         });
     }
 
+    hasSameRoot = (props) => {
+        const post = props.post;
+
+        if (props.isFirstReply) {
+            return false;
+        } else if (!post.root_id && !props.previousPostIsComment && props.consecutivePostByUser) {
+            return true;
+        } else if (post.root_id) {
+            return true;
+        }
+
+        return false;
+    }
+
     getClassName = (post, isSystemMessage, fromWebhook) => {
         let className = 'post';
 
@@ -138,11 +158,7 @@ export default class Post extends React.PureComponent {
         }
 
         let rootUser = '';
-        if (this.props.isFirstReply) {
-            rootUser = 'other--root';
-        } else if (!post.root_id && !this.props.previousPostIsComment && this.props.consecutivePostByUser) {
-            rootUser = 'same--root';
-        } else if (post.root_id) {
+        if (this.state.sameRoot) {
             rootUser = 'same--root';
         } else {
             rootUser = 'other--root';
@@ -194,6 +210,14 @@ export default class Post extends React.PureComponent {
         this.domNode = node;
     }
 
+    setHover = () => {
+        this.setState({hover: true});
+    }
+
+    unsetHover = () => {
+        this.setState({hover: false});
+    }
+
     render() {
         const post = this.props.post || {};
         const mattermostLogo = Constants.MATTERMOST_ICON_SVG;
@@ -206,61 +230,67 @@ export default class Post extends React.PureComponent {
             status = null;
         }
 
-        let profilePic = (
-            <ProfilePicture
-                src={PostUtils.getProfilePicSrcForPost(post, this.props.user)}
-                status={status}
-                user={this.props.user}
-                isBusy={this.props.isBusy}
-                hasMention={true}
-            />
-        );
-
-        if (fromWebhook) {
+        let profilePic;
+        const hideProfilePicture = this.state.sameRoot && this.props.consecutivePostByUser;
+        if (!hideProfilePicture) {
             profilePic = (
                 <ProfilePicture
                     src={PostUtils.getProfilePicSrcForPost(post, this.props.user)}
+                    status={status}
+                    user={this.props.user}
+                    isBusy={this.props.isBusy}
+                    hasMention={true}
                 />
             );
-        } else if (PostUtils.isSystemMessage(post)) {
-            profilePic = (
-                <span
-                    className='icon'
-                    dangerouslySetInnerHTML={{__html: mattermostLogo}}
-                />
-            );
+
+            if (fromWebhook) {
+                profilePic = (
+                    <ProfilePicture
+                        src={PostUtils.getProfilePicSrcForPost(post, this.props.user)}
+                    />
+                );
+            } else if (PostUtils.isSystemMessage(post)) {
+                profilePic = (
+                    <span
+                        className='icon'
+                        dangerouslySetInnerHTML={{__html: mattermostLogo}}
+                    />
+                );
+            }
+
+            if (this.props.compactDisplay) {
+                if (fromWebhook) {
+                    profilePic = (
+                        <ProfilePicture
+                            src=''
+                            status={status}
+                            isBusy={this.props.isBusy}
+                            user={this.props.user}
+                        />
+                    );
+                } else {
+                    profilePic = (
+                        <ProfilePicture
+                            src=''
+                            status={status}
+                        />
+                    );
+                }
+            }
         }
+
+        const profilePicContainer = <div className='post__img'>{profilePic}</div>;
 
         let centerClass = '';
         if (this.props.center) {
             centerClass = 'center';
         }
 
-        if (this.props.compactDisplay) {
-            if (fromWebhook) {
-                profilePic = (
-                    <ProfilePicture
-                        src=''
-                        status={status}
-                        isBusy={this.props.isBusy}
-                        user={this.props.user}
-                    />
-                );
-            } else {
-                profilePic = (
-                    <ProfilePicture
-                        src=''
-                        status={status}
-                    />
-                );
-            }
-        }
-
-        const profilePicContainer = (<div className='post__img'>{profilePic}</div>);
-
         return (
             <div
                 ref={this.getRef}
+                onMouseEnter={this.setHover}
+                onMouseLeave={this.unsetHover}
             >
                 <div
                     id={'post_' + post.id}
@@ -279,9 +309,11 @@ export default class Post extends React.PureComponent {
                                 status={this.props.status}
                                 isBusy={this.props.isBusy}
                                 lastPostCount={this.props.lastPostCount}
+                                isFirstReply={this.props.isFirstReply}
                                 replyCount={this.props.replyCount}
-                                consecutivePostByUser={this.props.consecutivePostByUser}
+                                showTimeWithoutHover={!hideProfilePicture}
                                 getPostList={this.props.getPostList}
+                                hover={this.state.hover}
                             />
                             <PostBody
                                 post={post}
