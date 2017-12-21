@@ -31,7 +31,7 @@ export default function CommentIcon(props) {
     return (
         <button
             id={id}
-            className={iconStyle + ' color--link style--none ' + selectorId}
+            className={iconStyle + ' color--link style--none ' + selectorId + ' ' + props.extraClass}
             onClick={props.handleCommentClick}
         >
             <span
@@ -49,12 +49,14 @@ CommentIcon.propTypes = {
     handleCommentClick: PropTypes.func.isRequired,
     searchStyle: PropTypes.string,
     commentCount: PropTypes.number,
-    id: PropTypes.string
+    id: PropTypes.string,
+    extraClass: PropTypes.string
 };
 
 CommentIcon.defaultProps = {
     idCount: -1,
     searchStyle: '',
     commentCount: 0,
-    id: ''
+    id: '',
+    extraClass: ''
 };
