@@ -22,6 +22,22 @@ export default class FormError extends React.Component {
         };
     }
 
+    shouldComponentUpdate(nextProps) {
+        if (nextProps.error !== this.props.error) {
+            return true;
+        }
+
+        const {errors: nextErrors} = nextProps;
+        const {errors: thisErrors} = this.props;
+        for (let i = 0, len = nextErrors.length; i < len; i++) {
+            if (nextProps[i] !== thisErrors[i]) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     render() {
         if (!this.props.error && this.props.errors.length === 0) {
             return null;
